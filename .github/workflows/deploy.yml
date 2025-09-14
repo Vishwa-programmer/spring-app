@@ -9,33 +9,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v3
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-
-      - name: Build JAR with Maven
-        run: mvn clean package -DskipTests
-
-      - name: Copy files to Lightsail
-        uses: appleboy/scp-action@v0.1.4
-        with:
-          host: ${{ secrets.LIGHTSAIL_HOST }}
-          username: ${{ secrets.LIGHTSAIL_USER }}
-          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
-          source: "target/*.jar,Dockerfile,deploy.sh"
-          target: "/home/deployer/spring-app"
-
-      - name: Deploy Application
+      - name: Deploy to Lightsail
         uses: appleboy/ssh-action@v0.1.5
         with:
           host: ${{ secrets.LIGHTSAIL_HOST }}
           username: ${{ secrets.LIGHTSAIL_USER }}
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
           script: |
-            cd /home/deployer/spring-app
+            cd /home/deployer
+            rm -rf spring-app
+            git clone https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/Vishwa-programmer/spring-app.git spring-app
+            cd spring-app
             chmod +x deploy.sh
             ./deploy.sh
