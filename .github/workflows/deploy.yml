@@ -29,7 +29,7 @@ jobs:
           script: |
             cd /home/deployer
             rm -rf myapp
-            git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git myapp
-            cd myapp
+            git clone https://github.com/Vishwa-programmer/spring-app.git spring-app
+            cd spring-app
             chmod +x deploy.sh
             ./deploy.sh
