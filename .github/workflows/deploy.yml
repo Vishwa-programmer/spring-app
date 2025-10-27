@@ -37,15 +37,15 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.LIGHTSAIL_USER }}
+          aws-secret-access-key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Create Lightsail deployment JSON
         run: |
           cat > aws-lightsail-containers.json <<'JSON'
           {
-            "serviceName":"${{ secrets.LIGHTSAIL_SERVICE_NAME }}",
+            "serviceName":"${{ secrets.LIGHTSAIL_HOST }}",
             "containers":{
               "myapp":{
                 "image":"${{ secrets.DOCKER_USERNAME }}/my-spring-app:${{ github.sha }}",
