@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+.git
+.gitignore
+*.md
+*.log
+.idea/
