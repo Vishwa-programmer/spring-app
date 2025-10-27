@@ -1,5 +1,3 @@
-name: Build -> Push -> Deploy to Lightsail
-
 on:
   push:
     branches: [ "main" ]
@@ -9,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Set up JDK 21
@@ -25,41 +23,42 @@ jobs:
         run: docker build -t ${{ secrets.DOCKER_USERNAME }}/my-spring-app:${{ github.sha }} .
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-        # use an access token as DOCKER_PASSWORD (recommended). :contentReference[oaicite:5]{index=5}
 
       - name: Push image to Docker Hub
         run: docker push ${{ secrets.DOCKER_USERNAME }}/my-spring-app:${{ github.sha }}
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+      - name: 🚀 Deploy to Lightsail Instance via SSH
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          aws-access-key-id: ${{ secrets.LIGHTSAIL_USER }}
-          aws-secret-access-key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
-          aws-region: ${{ secrets.LIGHTSAIL_REGION }}
-
-      - name: Create Lightsail deployment JSON
-        run: |
-          cat > aws-lightsail-containers.json <<'JSON'
-          {
-            "serviceName":"${{ secrets.LIGHTSAIL_HOST }}",
-            "containers":{
-              "myapp":{
-                "image":"${{ secrets.DOCKER_USERNAME }}/my-spring-app:${{ github.sha }}",
-                "ports":{"8080":"HTTP"},
-                "environment": {}
-              }
-            },
-            "publicEndpoint":{
-              "containerName":"myapp",
-              "containerPort":8080,
-              "healthCheck":{"protocol":"HTTP","path":"/actuator/health","successCodes":"200"}
-            }
-          }
-          JSON
-
-      - name: Deploy to Lightsail
-        run: aws lightsail create-container-service-deployment --cli-input-json file://aws-lightsail-containers.json
+          # Use your existing secrets
+          host: ${{ secrets.LIGHTSAIL_HOST }}
+          username: ${{ secrets.LIGHTSAIL_USER }}
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          
+          # Commands executed on the Lightsail Instance
+          script: |
+            echo "--- Starting Deployment on Lightsail Instance ---"
+            
+            # 1. Log in to Docker Hub on the instance
+            docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+            
+            # 2. Pull the newly pushed image
+            # Use the latest tag for ease, but map it to the SHA tag
+            IMAGE_TAG=${{ secrets.DOCKER_USERNAME }}/my-spring-app:${{ github.sha }}
+            docker pull $IMAGE_TAG
+            
+            # 3. Stop and remove the old container (if running)
+            docker stop my-spring-app-container || true
+            docker rm my-spring-app-container || true
+            
+            # 4. Start the new container
+            docker run -d \
+              --name my-spring-app-container \
+              -p 8080:8080 \
+              $IMAGE_TAG
+            
+            echo "--- Deployment Complete! Container running on port 8080. ---"
